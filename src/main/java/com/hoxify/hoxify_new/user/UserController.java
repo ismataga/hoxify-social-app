@@ -1,13 +1,19 @@
 package com.hoxify.hoxify_new.user;
 
 import com.hoxify.hoxify_new.error.ApiError;
+import com.hoxify.hoxify_new.exception.NotUniqueEmailException;
 import com.hoxify.hoxify_new.shared.GenericMessage;
+import com.hoxify.hoxify_new.shared.Messages;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
@@ -17,26 +23,47 @@ import java.util.Map;
 public class UserController {
     @Autowired
     UserService userService;
+//    @Autowired
+//    MessageSource messageSource;
 
     @PostMapping("api/v1/users")
-    public ResponseEntity<?> createUser(@RequestBody User user) {
-        ApiError apiError =  ApiError
+    public GenericMessage createUser(@Valid @RequestBody User user) {
+        userService.save(user);
+        String message = Messages.getMessageForLocale("hoxify.create.user.success.message",LocaleContextHolder.getLocale());
+        return new GenericMessage(message);
+    }
+
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    ApiError handleMethodArgNotValidEx(MethodArgumentNotValidException exception) {
+
+        String message = Messages.getMessageForLocale("hoxify.error.validation", LocaleContextHolder.getLocale());
+
+        ApiError apiError = ApiError
                 .builder()
                 .path("/api/v1/users")
-                .message("Validation error")
+                .message(message)
                 .status(400)
                 .build();
-        Map<String, String> validationErrorMap = new HashMap<String, String>();
-        if (user.getUsername() == null || user.getUsername().isEmpty()) {
-            validationErrorMap.put("username", "Username is required");
-        }
+        Map<String, String> validationErrorMap = new HashMap<>();
+        exception.getBindingResult().getFieldErrors().forEach(fieldError -> {
+            validationErrorMap.put(fieldError.getField(), fieldError.getDefaultMessage());
+        });
+        apiError.setValidationErrors(validationErrorMap);
+        return apiError;
+    }
 
-        if(validationErrorMap.size() > 0) {
-            apiError.setValidationErrors(validationErrorMap);
-            return ResponseEntity.badRequest().body(apiError);
-        }
-
-        userService.save(user);
-        return ResponseEntity.ok(new GenericMessage("User is created"));
+    @ExceptionHandler(NotUniqueEmailException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    ApiError handleNotUniqueEmailEx(NotUniqueEmailException exception) {
+        ApiError apiError = ApiError
+                .builder()
+                .path("/api/v1/users")
+                .message(exception.getMessage())
+                .status(400)
+                .build();
+        apiError.setValidationErrors(exception.getValidationErrors());
+        return apiError;
     }
 }
