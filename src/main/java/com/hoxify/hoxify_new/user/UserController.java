@@ -4,6 +4,7 @@ import com.hoxify.hoxify_new.error.ApiError;
 import com.hoxify.hoxify_new.exception.NotUniqueEmailException;
 import com.hoxify.hoxify_new.shared.GenericMessage;
 import com.hoxify.hoxify_new.shared.Messages;
+import com.hoxify.hoxify_new.user.dto.UserCreate;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -27,8 +28,8 @@ public class UserController {
 //    MessageSource messageSource;
 
     @PostMapping("api/v1/users")
-    public GenericMessage createUser(@Valid @RequestBody User user) {
-        userService.save(user);
+    public GenericMessage createUser(@Valid @RequestBody UserCreate user) {
+        userService.save(user.toUser());
         String message = Messages.getMessageForLocale("hoxify.create.user.success.message",LocaleContextHolder.getLocale());
         return new GenericMessage(message);
     }
