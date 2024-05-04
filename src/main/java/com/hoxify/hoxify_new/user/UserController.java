@@ -1,6 +1,7 @@
 package com.hoxify.hoxify_new.user;
 
 import com.hoxify.hoxify_new.error.ApiError;
+import com.hoxify.hoxify_new.exception.ActivationNotificationException;
 import com.hoxify.hoxify_new.exception.NotUniqueEmailException;
 import com.hoxify.hoxify_new.shared.GenericMessage;
 import com.hoxify.hoxify_new.shared.Messages;
@@ -66,5 +67,16 @@ public class UserController {
                 .build();
         apiError.setValidationErrors(exception.getValidationErrors());
         return apiError;
+    }
+
+    @ExceptionHandler(ActivationNotificationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    ApiError handleActivationNotificationException(ActivationNotificationException exception) {
+        return ApiError
+                .builder()
+                .path("/api/v1/users")
+                .message(exception.getMessage())
+                .status(502)
+                .build();
     }
 }

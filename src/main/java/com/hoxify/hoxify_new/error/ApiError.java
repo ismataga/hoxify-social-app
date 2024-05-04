@@ -1,5 +1,6 @@
 package com.hoxify.hoxify_new.error;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Data;
 
@@ -9,12 +10,13 @@ import java.util.Map;
 
 @Data
 @Builder
+@JsonInclude(value = JsonInclude.Include.NON_NULL)
 public class ApiError {
-   private int status;
-   private String message;
-   private String path;
-   private long timestamp = new Date().getTime();
-   private Map<String, String> validationErrors = new HashMap<String, String>();
+    private int status;
+    private String message;
+    private String path;
+    private long timestamp = new Date().getTime();
+    private Map<String, String> validationErrors = null;
 
 
 }

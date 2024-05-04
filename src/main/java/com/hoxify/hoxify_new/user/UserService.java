@@ -1,8 +1,11 @@
 package com.hoxify.hoxify_new.user;
 
+import com.hoxify.hoxify_new.exception.ActivationNotificationException;
 import com.hoxify.hoxify_new.exception.NotUniqueEmailException;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
@@ -19,15 +22,20 @@ public class UserService {
     UserRepository userRepository;
     PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
+
+    @Transactional(rollbackOn = MailException.class)
     public void save(User user) {
         try {
             String encodedPassword = passwordEncoder.encode(user.getPassword());
             user.setPassword(encodedPassword);
             user.setActivationToken(UUID.randomUUID().toString());
             sendActivationEmail(user);
-            userRepository.save(user);
+            userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException e) {
             throw new NotUniqueEmailException();
+        } catch (MailException e) {
+            throw new ActivationNotificationException();
+
         }
     }
 
@@ -36,9 +44,10 @@ public class UserService {
         simpleMailMessage.setFrom("ismataga1@gmail.com");
         simpleMailMessage.setTo(user.getEmail());
         simpleMailMessage.setSubject("Account Activation");
-        simpleMailMessage.setText("http://localhost:5173/acticvation/"+user.getActivationToken());
+        simpleMailMessage.setText("http://localhost:5173/acticvation/" + user.getActivationToken());
         getSimpleMailSender().send(simpleMailMessage);
     }
+
     public JavaMailSender getSimpleMailSender() {
 
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
@@ -48,7 +57,7 @@ public class UserService {
         mailSender.setPassword("NRGz9KMeAqx6M8zNAr");
 
         Properties properties = mailSender.getJavaMailProperties();
-        properties.put("mail.smtp.startttls.enable",true);
+        properties.put("mail.smtp.starttls.enable", true);
         return mailSender;
     }
 }
