@@ -2,17 +2,20 @@ package com.hoxify.hoxify_new.user;
 
 import com.hoxify.hoxify_new.error.ApiError;
 import com.hoxify.hoxify_new.exception.ActivationNotificationException;
+import com.hoxify.hoxify_new.exception.InvalidTokenException;
 import com.hoxify.hoxify_new.exception.NotUniqueEmailException;
 import com.hoxify.hoxify_new.shared.GenericMessage;
 import com.hoxify.hoxify_new.shared.Messages;
+
 import com.hoxify.hoxify_new.user.dto.UserCreate;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -32,6 +35,13 @@ public class UserController {
     public GenericMessage createUser(@Valid @RequestBody UserCreate user) {
         userService.save(user.toUser());
         String message = Messages.getMessageForLocale("hoxify.create.user.success.message",LocaleContextHolder.getLocale());
+        return new GenericMessage(message);
+    }
+
+    @PatchMapping("api/v1/users/{token}/active")
+    public GenericMessage activateUser( @PathVariable String token) {
+        userService.activateUser(token);
+        String message = Messages.getMessageForLocale("hoxify.activate.user.success.message",LocaleContextHolder.getLocale());
         return new GenericMessage(message);
     }
 
@@ -77,6 +87,18 @@ public class UserController {
                 .path("/api/v1/users")
                 .message(exception.getMessage())
                 .status(502)
+                .build();
+    }
+
+
+    @ExceptionHandler(InvalidTokenException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    ApiError handleInvalidTokenException(InvalidTokenException exception) {
+        return ApiError
+                .builder()
+                .path("/api/v1/users")
+                .message(exception.getMessage())
+                .status(400)
                 .build();
     }
 }
