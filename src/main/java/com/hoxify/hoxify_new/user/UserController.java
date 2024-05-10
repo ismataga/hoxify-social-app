@@ -1,104 +1,62 @@
 package com.hoxify.hoxify_new.user;
 
-import com.hoxify.hoxify_new.error.ApiError;
-import com.hoxify.hoxify_new.exception.ActivationNotificationException;
-import com.hoxify.hoxify_new.exception.InvalidTokenException;
-import com.hoxify.hoxify_new.exception.NotUniqueEmailException;
+import com.hoxify.hoxify_new.configration.CurrentUser;
+import com.hoxify.hoxify_new.exception.AutherizationException;
 import com.hoxify.hoxify_new.shared.GenericMessage;
 import com.hoxify.hoxify_new.shared.Messages;
-
 import com.hoxify.hoxify_new.user.dto.UserCreate;
+import com.hoxify.hoxify_new.user.dto.UserDTO;
+import com.hoxify.hoxify_new.user.dto.UserUpdate;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 public class UserController {
     @Autowired
     UserService userService;
-//    @Autowired
-//    MessageSource messageSource;
 
     @PostMapping("api/v1/users")
     public GenericMessage createUser(@Valid @RequestBody UserCreate user) {
         userService.save(user.toUser());
-        String message = Messages.getMessageForLocale("hoxify.create.user.success.message",LocaleContextHolder.getLocale());
+        String message = Messages.getMessageForLocale("hoxify.create.user.success.message", LocaleContextHolder.getLocale());
         return new GenericMessage(message);
     }
 
     @PatchMapping("api/v1/users/{token}/active")
-    public GenericMessage activateUser( @PathVariable String token) {
+    public GenericMessage activateUser(@PathVariable String token) {
         userService.activateUser(token);
-        String message = Messages.getMessageForLocale("hoxify.activate.user.success.message",LocaleContextHolder.getLocale());
+        String message = Messages.getMessageForLocale("hoxify.activate.user.success.message", LocaleContextHolder.getLocale());
         return new GenericMessage(message);
     }
 
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    ApiError handleMethodArgNotValidEx(MethodArgumentNotValidException exception) {
-
-        String message = Messages.getMessageForLocale("hoxify.error.validation", LocaleContextHolder.getLocale());
-
-        ApiError apiError = ApiError
-                .builder()
-                .path("/api/v1/users")
-                .message(message)
-                .status(400)
-                .build();
-        Map<String, String> validationErrorMap = new HashMap<>();
-        exception.getBindingResult().getFieldErrors().forEach(fieldError -> {
-            validationErrorMap.put(fieldError.getField(), fieldError.getDefaultMessage());
-        });
-        apiError.setValidationErrors(validationErrorMap);
-        return apiError;
+    @GetMapping("api/v1/users")
+    Page<UserDTO> getUsers(Pageable pageable,  @AuthenticationPrincipal CurrentUser currentUser) {
+        return userService.getUsers(pageable, currentUser).map(UserDTO::new);
     }
 
-    @ExceptionHandler(NotUniqueEmailException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    ApiError handleNotUniqueEmailEx(NotUniqueEmailException exception) {
-        ApiError apiError = ApiError
-                .builder()
-                .path("/api/v1/users")
-                .message(exception.getMessage())
-                .status(400)
-                .build();
-        apiError.setValidationErrors(exception.getValidationErrors());
-        return apiError;
+    @GetMapping("api/v1/users/{id}")
+    UserDTO getUser(@PathVariable Long id) {
+        return new UserDTO(userService.getUser(id));
     }
 
-    @ExceptionHandler(ActivationNotificationException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    ApiError handleActivationNotificationException(ActivationNotificationException exception) {
-        return ApiError
-                .builder()
-                .path("/api/v1/users")
-                .message(exception.getMessage())
-                .status(502)
-                .build();
+    @PutMapping("api/v1/users/{id}")
+    @PreAuthorize("#id == principal.id")
+    User updateUser(@PathVariable Long id, @Valid @RequestBody UserUpdate user, @AuthenticationPrincipal CurrentUser currentUser) {
+        return userService.updateUser(id, user);
     }
 
 
-    @ExceptionHandler(InvalidTokenException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    ApiError handleInvalidTokenException(InvalidTokenException exception) {
-        return ApiError
-                .builder()
-                .path("/api/v1/users")
-                .message(exception.getMessage())
-                .status(400)
-                .build();
-    }
 }

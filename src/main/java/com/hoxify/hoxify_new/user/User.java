@@ -19,8 +19,11 @@ public class User {
     private String username;
     private String email;
     private String password;
-
     private boolean active = false;
     private String activationToken;
+    @Lob
+    private String image;
+    private String firstname;
+    private String lastname;
 
 }

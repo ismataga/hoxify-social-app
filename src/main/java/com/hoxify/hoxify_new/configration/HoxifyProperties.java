@@ -12,8 +12,10 @@ import org.springframework.context.annotation.Configuration;
 public class HoxifyProperties {
     private Email email;
     private Client client;
+    private Storeage storeage = new Storeage();
+    private String tokenType;
 
-    public static record Email(
+    public  record Email(
             String username,
             String password,
             String host,
@@ -22,8 +24,16 @@ public class HoxifyProperties {
     ) {
     }
 
-    public static record Client(
+    public  record Client(
             String host
     ) {
+    }
+
+
+    @Setter
+    @Getter
+    public static  class Storeage{
+        String root ="uploads";
+        String profile = "profile";
     }
 }
