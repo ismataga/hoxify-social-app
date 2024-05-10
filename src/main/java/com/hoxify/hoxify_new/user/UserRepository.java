@@ -17,4 +17,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<UserProjection> getAllUserRecords(Pageable pageable);
 
     Page<User> findByIdNot(Long id, Pageable pageable);
+
+    User findByPasswordResetToken(String token);
 }

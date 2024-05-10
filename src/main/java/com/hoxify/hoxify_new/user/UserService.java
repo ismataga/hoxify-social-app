@@ -7,6 +7,8 @@ import com.hoxify.hoxify_new.exception.InvalidTokenException;
 import com.hoxify.hoxify_new.exception.NotFoundException;
 import com.hoxify.hoxify_new.exception.NotUniqueEmailException;
 import com.hoxify.hoxify_new.file.FileService;
+import com.hoxify.hoxify_new.user.dto.PasswordResetRequest;
+import com.hoxify.hoxify_new.user.dto.PasswordUpdate;
 import com.hoxify.hoxify_new.user.dto.UserDTO;
 import com.hoxify.hoxify_new.user.dto.UserProjection;
 import com.hoxify.hoxify_new.user.dto.UserUpdate;
@@ -84,11 +86,39 @@ public class UserService {
         User inDB = getUser(id);
         inDB.setUsername(user.username());
 
-        if(user.image() != null) {
+        if (user.image() != null) {
             String dileName = fileService.saveBaseAsFile(user.image());
             fileService.deletePtofiliImage(inDB.getImage());
             inDB.setImage(dileName);
         }
         return userRepository.save(inDB);
+    }
+
+    public void deleteUser(Long id) {
+        User inDbUser = getUser(id);`
+        if (inDbUser.getImage() != null) {
+            fileService.deletePtofiliImage(inDbUser.getImage());
+        }
+        userRepository.deleteById(id);
+    }
+
+    public void handleResetRequest(PasswordResetRequest passwordReset) {
+        User inDB = findByEmail(passwordReset.email());
+        if (inDB.getImage() == null) throw new NotFoundException(0);
+        inDB.setPasswordResetToken(UUID.randomUUID().toString());
+        this.userRepository.save(inDB);
+        this.emailService.sendActivationEmail(inDB.getEmail(), inDB.getPasswordResetToken());
+    }
+
+    public void updatePassword(String token, PasswordUpdate passwordUpdate) {
+        User inDB = userRepository.findByPasswordResetToken(token);
+        if (inDB == null) {
+            throw new InvalidTokenException();
+        }
+        inDB.setPasswordResetToken(null);
+        inDB.setPassword(passwordEncoder.encode(passwordUpdate.password()));
+        inDB.setActive(true);
+        inDB.setActivationToken(null);
+        userRepository.save(inDB);
     }
 }

@@ -22,7 +22,7 @@ public class SecurityConfiguration {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http.authorizeHttpRequests((authentication) ->
-                authentication.requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PUT, "/api/v1/users/{id}")).authenticated()
+                authentication.requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.DELETE, "/api/v1/users/{id}")).authenticated()
                         .anyRequest().permitAll()
         );
         http.httpBasic(httpbasic -> httpbasic.authenticationEntryPoint(new AuthEntryPoint()));

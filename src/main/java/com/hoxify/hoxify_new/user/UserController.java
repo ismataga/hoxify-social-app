@@ -1,9 +1,10 @@
 package com.hoxify.hoxify_new.user;
 
 import com.hoxify.hoxify_new.configration.CurrentUser;
-import com.hoxify.hoxify_new.exception.AutherizationException;
 import com.hoxify.hoxify_new.shared.GenericMessage;
 import com.hoxify.hoxify_new.shared.Messages;
+import com.hoxify.hoxify_new.user.dto.PasswordResetRequest;
+import com.hoxify.hoxify_new.user.dto.PasswordUpdate;
 import com.hoxify.hoxify_new.user.dto.UserCreate;
 import com.hoxify.hoxify_new.user.dto.UserDTO;
 import com.hoxify.hoxify_new.user.dto.UserUpdate;
@@ -54,9 +55,28 @@ public class UserController {
 
     @PutMapping("api/v1/users/{id}")
     @PreAuthorize("#id == principal.id")
-    User updateUser(@PathVariable Long id, @Valid @RequestBody UserUpdate user, @AuthenticationPrincipal CurrentUser currentUser) {
-        return userService.updateUser(id, user);
+    UserDTO updateUser(@PathVariable Long id, @Valid @RequestBody UserUpdate user, @AuthenticationPrincipal CurrentUser currentUser) {
+        return new UserDTO(userService.updateUser(id, user));
     }
 
+    @PutMapping("api/v1/users/{id}")
+    @PreAuthorize("#id == principal.id")
+    GenericMessage deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+        return new GenericMessage("User is deleted");
+    }
+
+
+    @PutMapping("api/v1/users/password-reset")
+    GenericMessage passwordResetRequest(@Valid @RequestBody PasswordResetRequest passwordReset) {
+        userService.handleResetRequest(passwordReset);
+        return new GenericMessage("Check your Email Address to reset password");
+    }
+    @PatchMapping("/api/v1/users/{token}/password")
+    GenericMessage setPassword(@PathVariable String token, @Valid @RequestBody PasswordUpdate passwordUpdate){
+        userService.updatePassword(token, passwordUpdate);
+        return new GenericMessage("Password updated successfully");
+
+    }
 
 }
